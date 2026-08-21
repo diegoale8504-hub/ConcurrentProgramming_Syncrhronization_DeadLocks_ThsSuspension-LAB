@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.EventQueue;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -88,17 +89,24 @@ public class ControlFrame extends JFrame {
         btnPauseAndCheck.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
 
-                /*
-				 * COMPLETAR
-                 */
-                int sum = 0;
-                for (Immortal im : immortals) {
-                    sum += im.getHealth();
-                }
-
-                statisticsLabel.setText("<html>"+immortals.toString()+"<br>Health sum:"+ sum);
+                Immortal.paused = true;
                 
-                
+                new Thread(() -> {
+                    synchronized (Immortal.pauseLock) {
+                        while (Immortal.pausedCount.get() < immortals.size()) {
+                            try {
+                                Immortal.pauseLock.wait();
+                            } catch (InterruptedException ex) {
+                                ex.printStackTrace();
+                            }
+                        }
+                    }
+                    int sum = 0;
+                    for (Immortal im : immortals) {
+                        sum += im.getHealth();
+                    }
+                    statisticsLabel.setText("<html>"+immortals.toString()+"<br>Health sum:"+ sum);
+                }).start();
 
             }
         });
@@ -108,10 +116,10 @@ public class ControlFrame extends JFrame {
 
         btnResume.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                /**
-                 * IMPLEMENTAR
-                 */
-
+                Immortal.paused = false;
+                synchronized (Immortal.pauseLock) {
+                    Immortal.pauseLock.notifyAll();
+                }
             }
         });
 
@@ -127,6 +135,15 @@ public class ControlFrame extends JFrame {
 
         JButton btnStop = new JButton("STOP");
         btnStop.setForeground(Color.RED);
+        btnStop.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                Immortal.stopped = true;
+                Immortal.paused = false;
+                synchronized (Immortal.pauseLock) {
+                    Immortal.pauseLock.notifyAll();
+                }
+            }
+        });
         toolBar.add(btnStop);
 
         scrollPane = new JScrollPane();
@@ -149,7 +166,7 @@ public class ControlFrame extends JFrame {
         try {
             int ni = Integer.parseInt(numOfImmortals.getText());
 
-            List<Immortal> il = new LinkedList<Immortal>();
+            List<Immortal> il = new CopyOnWriteArrayList<Immortal>();
 
             for (int i = 0; i < ni; i++) {
                 Immortal i1 = new Immortal("im" + i, il, DEFAULT_IMMORTAL_HEALTH, DEFAULT_DAMAGE_VALUE,ucb);

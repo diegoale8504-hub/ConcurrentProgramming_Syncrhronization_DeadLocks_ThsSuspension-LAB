@@ -1,0 +1,13 @@
+Parte III
+
+2. El invariante deberia ser N * 100. Porque cada inmortal empieza con 100 de vida y al pelear se restan y suman la misma cantidad, asi que el total no deberia cambiar nunca.
+
+3. Al principio, si le dabamos a pause and check la suma no daba el invariante exacto porque los hilos seguian corriendo mientras el programa iba sumando, ademas habia condiciones de carrera.
+
+4. Se implemento la pausa usando un lock. Todos los hilos esperan a que se les quite la pausa (con un notifyAll) y el ControlFrame se asegura de que todos esten pausados de verdad para recien ahi sumar la vida correctamente.
+
+5. Si le damos muchas veces a pause and check ahora si se cumple el invariante siempre y la suma da exacta.
+
+7 y 8. A veces el programa se trababa por un deadlock porque dos inmortales se peleaban entre si exactamente al mismo tiempo y se bloqueaban esperando el uno al otro. Esto se arreglo ordenando los locks usando el hashcode de cada inmortal para que siempre se bloqueen en el mismo orden y no haya cruces.
+
+10. Si se eliminan de la lista normal (LinkedList) saca error de concurrencia o se pierde informacion en el camino. Al cambiar la lista a un CopyOnWriteArrayList se pueden borrar sin problemas porque es una lista que soporta concurrencia sin tener que meter synchronized en todo lado, lo cual pondria todo el programa super lento.
